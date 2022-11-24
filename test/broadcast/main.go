@@ -62,15 +62,16 @@ func handleConn(conn net.Conn) {
 
 	// get message from os.Stdin
 	input := bufio.NewScanner(conn)
-	ch := time.After(duration)
+	ticker := time.NewTicker(duration)
 	go func() {
-		<-ch
+		// when the client has no message over the duration, it will be exited
+		<-ticker.C
 		b.Messages <- fmt.Sprintf("%s has left, timeout", who)
 		conn.Close()
 	}()
 	for input.Scan() {
 		b.Messages <- fmt.Sprintf("%s: %s", who, input.Text())
-		ch = time.After(duration)
+		ticker.Reset(duration) // when the client has sent any message, the duration will be refreshed
 	}
 
 	// when the client has been disconnected with server
