@@ -3,20 +3,17 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"github.com/google/uuid"
+	"go-book/ch8/8.12/broadcast"
 	"log"
 	"net"
-	"time"
-
-	"github.com/google/uuid"
 )
 
 var (
 	Hostname = "localhost"
 	Port     = "8090"
 	Address  = fmt.Sprintf("%s:%s", Hostname, Port)
-	b        *Broadcaster
-	d        *Database
-	duration time.Duration
+	b        *broadcast.Broadcaster
 )
 
 func main() {
@@ -48,7 +45,7 @@ func main() {
 
 func handleConn(conn net.Conn) {
 	who := fmt.Sprintf("%s-%s", conn.RemoteAddr().String(), uuid.New().String())
-	client := NewClient(who)
+	client := broadcast.NewClient(who)
 	go func() {
 		// read message from channel
 		for msg := range client.Messages {
@@ -63,16 +60,8 @@ func handleConn(conn net.Conn) {
 
 	// get message from os.Stdin
 	input := bufio.NewScanner(conn)
-	ticker := time.NewTicker(duration)
-	go func() {
-		// when the client has no message over the duration, it will be exited
-		<-ticker.C
-		b.Messages <- fmt.Sprintf("%s has left, timeout", who)
-		conn.Close()
-	}()
 	for input.Scan() {
 		b.Messages <- fmt.Sprintf("%s: %s", who, input.Text())
-		ticker.Reset(duration) // when the client has sent any message, the duration will be refreshed
 	}
 
 	// when the client has been disconnected with server
@@ -82,7 +71,5 @@ func handleConn(conn net.Conn) {
 }
 
 func init() {
-	b = NewBroadcaster()
-	d = NewDatabase()
-	duration, _ = time.ParseDuration("5s")
+	b = broadcast.NewBroadcaster()
 }

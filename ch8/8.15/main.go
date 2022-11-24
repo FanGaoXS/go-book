@@ -8,14 +8,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"go-book/ch8/8.15/broadcast"
 )
 
 var (
 	Hostname = "localhost"
 	Port     = "8090"
 	Address  = fmt.Sprintf("%s:%s", Hostname, Port)
-	b        *Broadcaster
-	d        *Database
+	b        *broadcast.Broadcaster
 	duration time.Duration
 )
 
@@ -48,7 +48,7 @@ func main() {
 
 func handleConn(conn net.Conn) {
 	who := fmt.Sprintf("%s-%s", conn.RemoteAddr().String(), uuid.New().String())
-	client := NewClient(who)
+	client := broadcast.NewClient(who)
 	go func() {
 		// read message from channel
 		for msg := range client.Messages {
@@ -82,7 +82,6 @@ func handleConn(conn net.Conn) {
 }
 
 func init() {
-	b = NewBroadcaster()
-	d = NewDatabase()
+	b = broadcast.NewBroadcaster()
 	duration, _ = time.ParseDuration("5s")
 }
