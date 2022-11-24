@@ -1,6 +1,10 @@
 package main
 
-import "log"
+import (
+	"fmt"
+	"log"
+	"time"
+)
 
 type Broadcaster struct {
 	Registers   chan *Client
@@ -31,8 +35,9 @@ func (b *Broadcaster) Run() {
 			close(client.Messages)
 			log.Printf("%s unregisters, current online: %d", client.Name, len(b.clients))
 		case msg := <-b.Messages:
+			// any message from client
 			for client, _ := range b.clients {
-				client.Messages <- msg
+				client.Messages <- fmt.Sprintf("[%s] %s", time.Now().Format("2006/01/02 15:04:05"), msg)
 			}
 			log.Printf("has broadcasted message [%s] which from client", msg)
 		}

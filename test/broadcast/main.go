@@ -14,6 +14,8 @@ var (
 	Port     = "8090"
 	Address  = fmt.Sprintf("%s:%s", Hostname, Port)
 	b        *Broadcaster
+	d        *Database
+	duration time.Duration
 )
 
 func main() {
@@ -24,6 +26,15 @@ func main() {
 	log.Printf("listen on %s", Address)
 
 	go b.Run()
+
+	go func() {
+		var input string
+		for {
+			fmt.Scanln(&input)
+			b.Messages <- fmt.Sprintf("admin: %s", input)
+		}
+	}()
+
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
@@ -51,10 +62,18 @@ func handleConn(conn net.Conn) {
 
 	// get message from os.Stdin
 	input := bufio.NewScanner(conn)
+	ch := time.After(duration)
+	go func() {
+		<-ch
+		b.Messages <- fmt.Sprintf("%s has left, timeout", who)
+		conn.Close()
+	}()
 	for input.Scan() {
-		b.Messages <- fmt.Sprintf("[%s] %s: %s", time.Now().Format("2006/01/02 15:04:05"), who, input.Text())
+		b.Messages <- fmt.Sprintf("%s: %s", who, input.Text())
+		ch = time.After(duration)
 	}
 
+	// when the client has been disconnected with server
 	b.Unregisters <- client
 	b.Messages <- fmt.Sprintf("%s has left", who)
 	conn.Close()
@@ -62,4 +81,6 @@ func handleConn(conn net.Conn) {
 
 func init() {
 	b = NewBroadcaster()
+	d = NewDatabase()
+	duration, _ = time.ParseDuration("5s")
 }
